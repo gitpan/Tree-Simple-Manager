@@ -6,7 +6,7 @@ use warnings;
 
 use Scalar::Util qw(blessed);
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
     
 use Tree::Simple::Manager::Exceptions;    
     
@@ -27,7 +27,12 @@ sub _init {
     $self->{root_tree} = $tree;
     $self->{index}     = {};
     # then add all its children on down
-    $tree->traverse(sub {
+    $self->indexTree();
+}
+
+sub indexTree {
+    my ($self) = @_;
+    $self->{root_tree}->traverse(sub {
         my ($tree) = @_;
         (!exists ${$self->{index}}{$tree->getUID()}) 
             || throw Tree::Simple::Manager::IllegalOperation "tree (" . $tree->getUID() . ") already exists in the index, cannot add a duplicate";        
@@ -35,13 +40,13 @@ sub _init {
     });
 }
 
+sub getRootTree { (shift)->{root_tree} }
+ 
 sub getIndexKeys {
     my ($self) = @_;
-    my @keys = sort { $a <=> $b } keys %{$self->{index}};
+    my @keys = keys %{$self->{index}};
     return wantarray ? @keys : \@keys;
 }
-
-sub getRootTree { (shift)->{root_tree} }
 
 sub getTreeByID {
     my ($self, $id) = @_;
@@ -77,6 +82,10 @@ This module will index a Tree::Simple hierarchy so that node's can be quickly ac
 
 Given a C<$tree> it will index all it's nodes by their UID values.
 
+=item B<indexTree>
+
+This will take the root tree (the C<$tree> arguments in C<new>) and index it. This method can be overridden by a subclass to provide custom indexing functionality. See the L<SUBCLASSING> section below.
+
 =item B<getIndexKeys>
 
 This will return a list of all the index keys. 
@@ -91,11 +100,19 @@ Given an C<$id> this will return the tree associated with it. If no tree is asso
 
 =back
 
-=head1 TO DO
+=head1 SUBCLASSING
 
-=over 4
+This module will index a Tree::Simple hierarchy using the UID property of each tree node (fetched with the C<getUID> method of Tree::Simple). This works well with the Tree::Simple::Manager's default tree file parser filter, which expects a tree file format which supplies an id field. It is obvious that this approach may not be useful in all cases, so I have built this module too easily allow for subclassing and customization of the indexing process. 
 
-=item I<Allow for alternate means of indexing trees>
+You will need to override the C<indexTree> method. The root tree is accessible by the C<getRootTree> method, and the index is a hash reference available as a public field C<$self-E<gt>{index}>. How you choose to construct the index from here is up to you. Here are a couple of things to keep in mind though.
+
+=over
+
+=item Duplicate index keys
+
+We throw an exception in the default indexer if we notice a duplicate key being created. It is the responsibility of the subclass author to check.
+
+=item 
 
 =back
 

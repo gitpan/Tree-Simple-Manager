@@ -4,7 +4,7 @@ package Tree::Simple::Manager::Exceptions;
 use strict;
 use warnings;
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 use Class::Throwable qw(
     Tree::Simple::Manager::InsufficientArguments
@@ -13,6 +13,7 @@ use Class::Throwable qw(
     Tree::Simple::Manager::DuplicateName
     Tree::Simple::Manager::IncorrectObjectType
     Tree::Simple::Manager::OperationFailed
+    Tree::Simple::Manager::IncorrectObjectType
     );
 
 $Class::Throwable::DEFAULT_VERBOSITY = 2;
@@ -48,6 +49,8 @@ This module just creates a number of exceptions for use with the Tree::Simple::M
 =item B<Tree::Simple::Manager::IncorrectObjectType>
 
 =item B<Tree::Simple::Manager::OperationFailed>
+
+=item B<Tree::Simple::Manager::IncorrectObjectType>
 
 =back
 

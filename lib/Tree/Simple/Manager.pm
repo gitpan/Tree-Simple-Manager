@@ -6,7 +6,7 @@ use warnings;
 
 use Scalar::Util qw(blessed);
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 use Tree::Simple::Manager::Index;
 use Tree::Simple::Manager::Exceptions;
@@ -49,7 +49,14 @@ sub _init {
         eval {
             my $tp = Tree::Parser->new($root_tree);
             $tp->setInput($config->{tree_file_path});
-            $tp->setParseFilter($self->_getParseFilter(ref($root_tree)));
+            if (exists ${$config}{tree_parse_filter}) {
+                (ref($config->{tree_parse_filter}) eq 'CODE')
+                    || throw Tree::Simple::Manager::IncorrectObjectType "a 'tree_parse_filter' must be a code ref";
+                $tp->setParseFilter($self->_parseFilterWrapper(ref($root_tree) => $config->{tree_parse_filter}));
+            }
+            else {
+                $tp->setParseFilter($self->_getDefaultParseFilter(ref($root_tree)));
+            }
             $tp->parse();
             $tree = $tp->getTree();
         };
@@ -58,21 +65,45 @@ sub _init {
         }
         
         # by default we use our Index module
-        my $tree_index_module = "Tree::Simple::Manager::Index";
-        $tree_index_module = $config->{tree_index} 
-            if exists ${$config}{tree_index};      
+        
+        my $tree_index_module;;
+        if (exists ${$config}{tree_index}) {
+            ($config->{tree_index}->isa('Tree::Simple::Manager::Index')) 
+                || throw Tree::Simple::Manager::IncorrectObjectType "the 'tree_index' must be a subclass of Tree::Simple::Manager::Index";
+            $tree_index_module = $config->{tree_index};
+        }
+        else {
+            $tree_index_module = "Tree::Simple::Manager::Index";
+        }
         
         $self->{trees}->{$tree_name}->{index} = $tree_index_module->new($tree);
         
-        my $tree_view = "Tree::Simple::View::DHTML";
-        $tree_view = $config->{tree_view} 
-            if exists ${$config}{tree_view};
+        my $tree_view;
+        if (exists ${$config}{tree_view}) {
+            ($config->{tree_view}->isa('Tree::Simple::View')) 
+                || throw Tree::Simple::Manager::IncorrectObjectType "the 'tree_view' must be a subclass of Tree::Simple::View";        
+            $tree_view = $config->{tree_view};
+        }
+        else {
+            $tree_view = "Tree::Simple::View::DHTML" 
+        }
             
         $self->{trees}->{$tree_name}->{view} = $tree_view;
     }
 }
 
-sub _getParseFilter {
+sub _parseFilterWrapper {
+    my ($self, $tree_type, $filter) = @_;
+    return sub {
+        my $i = shift;
+        my ($depth, $tree) = $filter->($i, $tree_type);
+        (blessed($tree) && $tree->isa('Tree::Simple'))
+            || throw Tree::Simple::Manager::IncorrectObjectType "Custom Parse filters must return Tree::Simple objects";
+        return ($depth, $tree);
+    };
+}
+
+sub _getDefaultParseFilter {
     my (undef, $tree_type) = @_;
     return sub {
         my ($line_iterator) = @_;
@@ -158,9 +189,9 @@ Tree::Simple::Manager - A class for managing multiple Tree::Simple hierarchies
             tree_file_path => "data/organization_level.tree",        
             tree_root      => Tree::Simple->new(Tree::Simple->ROOT),
             tree_index     => "My::Tree::Indexing::Class",
-            tree_index     => "My::Tree::Simple::View::Class",            
+            tree_view      => "My::Tree::Simple::View::Class",            
         }
-  );     
+  );   
 
 =head1 DESCRIPTION
 
@@ -174,7 +205,64 @@ The basic idea of this module is that you can load and store Tree::Simple hierar
 
 =item B<new (%tree_configs)>
 
-This will load all the tree heirachies from disk, index them. The config format is show above in L<SYNOPSIS>, the only required fields are C<tree_root>, which must be a Tree::Simple object (or a subclass of Tree::Simple) and C<tree_file_path> which must be a valid file path to a file which L<Tree::Parser> will understand.
+This will load all the tree heirachies from disk, index them. The config format is show above in L<SYNOPSIS>, and described in detail below: 
+
+B<Required Fields>
+
+=over 4
+
+=item I<tree_root> 
+
+This must be a Tree::Simple object (or a subclass of Tree::Simple) it will serve as the root of this particular tree. 
+
+=item I<tree_file_path> 
+
+This must be a valid path to a tree file which L<Tree::Parser> will understand.
+
+=back
+
+B<Optional Fields>
+
+=over 4
+
+=item I<tree_index>
+
+This must be a package name for a L<Tree::Simple::Manager::Index> subclass. The default is L<Tree::Simple::Manager::Index>.
+
+=item I<tree_view>
+
+This must be a package name for a L<Tree::Simple::View> subclass. The default is L<Tree::Simple::View::DHTML>.
+
+=item <tree_parse_filter>
+
+This must be a subroutine reference which is compatible with L<Tree::Parser>'s parse filters. It's first argument is an L<Array::Iterator> object which has all the lines in the tree file. It's second argument is the tree class name as specified in the C<tree_root> field. Here is an example custom parse filter:
+
+  # this will parse tree files formated like this:
+  # uid:node
+  #     uid:node
+  #	        uid:node
+  #     uid:node
+  tree_parse_filter => sub {
+      my ($line_iterator, $tree_type) = @_;
+      my $line = $line_iterator->next();
+      my ($tabs, $id, $node) = ($line =~ /(\t+)?(\d+)\:(.*)/);
+      my $depth = 0;
+      $depth = length $tabs if $tabs;
+      my $tree = $tree_type->new($node);
+      $tree->setUID($id);
+      return ($depth, $tree);                  
+  }
+        
+The default parse filter will parse tree files which look like this:
+
+  uid    node
+  uid        node
+  uid            node
+  uid        node
+
+Where the UID is first, followed by a tab, then either the node value or more tabs to indicate the tree depth.
+
+=back
 
 =item B<getTreeList>
 
@@ -208,9 +296,13 @@ This will return an instance of the Tree::Simple::View class associated with C<$
 
 =item I<A bunch of stuff>
 
-This is the first release of this module. I wrote it a while ago for a specific project, and decided it was useful outside of that project as well. I am sure this can be expanded much further, and I am sure I will discover ways to do that as I use it more and more. 
+This is the second release of this module. I wrote it a while ago for a specific project, and decided it was useful outside of that project as well. I am sure this can be expanded much further, and I am sure I will discover ways to do that as I use it more and more. 
 
 Suggestions, comments and even patches are always welcome.
+
+=item I<Support the pre-built filters of Tree::Parser>
+
+Tree::Parser has a number of pre-built filters, I would like be able to take advantage of them with this module.
 
 =back
 
@@ -225,11 +317,11 @@ I use B<Devel::Cover> to test the code coverage of my tests, below is the B<Deve
  --------------------------------- ------ ------ ------ ------ ------ ------ ------
  File                                stmt branch   cond    sub    pod   time  total
  --------------------------------- ------ ------ ------ ------ ------ ------ ------
- Tree/Simple/Manager.pm             100.0  100.0   66.7  100.0  100.0   47.9   97.5
- Tree/Simple/Manager/Exceptions.pm  100.0    n/a    n/a  100.0    n/a    4.2  100.0
- Tree/Simple/Manager/Index.pm       100.0   75.0   66.7  100.0  100.0   47.9   93.8
+ Tree/Simple/Manager.pm             100.0  100.0   66.7  100.0  100.0   78.2   97.4
+ Tree/Simple/Manager/Exceptions.pm  100.0    n/a    n/a  100.0    n/a    4.7  100.0
+ Tree/Simple/Manager/Index.pm       100.0   75.0   66.7  100.0  100.0   17.1   94.1
  --------------------------------- ------ ------ ------ ------ ------ ------ ------
- Total                              100.0   94.7   66.7  100.0  100.0  100.0   96.7
+ Total                              100.0   95.8   66.7  100.0  100.0  100.0   96.7
  --------------------------------- ------ ------ ------ ------ ------ ------ ------
 
 =head1 SEE ALSO

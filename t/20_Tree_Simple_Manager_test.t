@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 42;
+use Test::More tests => 51;
 use Test::Exception;
 
 BEGIN {
@@ -75,12 +75,14 @@ can_ok('Tree::Simple::Manager', 'new');
     
 }
 
-{
 
+{
     {
         package My::TreeView;
+        use base 'Tree::Simple::View';        
         
         package My::TreeIndex;
+        use base 'Tree::Simple::Manager::Index';
         sub new { bless {} } 
     }
 
@@ -99,6 +101,36 @@ can_ok('Tree::Simple::Manager', 'new');
     
     my $tree_view = $tree_manager->getTreeViewClass("Test Tree");
     is($tree_view, 'My::TreeView', '... got the right view class');
+    
+}
+
+{ # testing custom parse filter in config
+
+    my $tree_manager = Tree::Simple::Manager->new(
+        "Test Tree" => {
+            tree_root         => Tree::Simple->new(Tree::Simple->ROOT),
+            tree_file_path    => "t/test.tree",
+            tree_parse_filter => sub {
+                my ($line_iterator, $tree_type) = @_;
+                my $line = $line_iterator->next();
+                my ($id, $tabs, $node) = ($line =~ /(\d+)\t(\t+)?(.*)/);
+                my $depth = 0;
+                $depth = length $tabs if $tabs;
+                my $tree = $tree_type->new($id);
+                $tree->setUID($node);
+                return ($depth, $tree);                  
+                }
+            }
+        );
+    isa_ok($tree_manager, 'Tree::Simple::Manager');
+    
+    my $tree_index = $tree_manager->getTreeIndex("Test Tree");
+    isa_ok($tree_index, 'Tree::Simple::Manager::Index');
+    
+    is_deeply(
+        [ sort $tree_index->getIndexKeys() ], 
+        [ qw(I I.I I.II I.II.I II II.I II.I.I III III.I III.II IV O) ], 
+        '... all our keys should be there');    
     
 }
 
@@ -135,6 +167,48 @@ can_ok('Tree::Simple::Manager', 'new');
             'Fail' => { tree_root => bless({}, 'Fail'), tree_file_path => "t/test.tree" },
             );
     } "Tree::Simple::Manager::IncorrectObjectType", '... this should die'; 
+    
+    throws_ok {
+        Tree::Simple::Manager->new(
+            'Fail' => { 
+                tree_root => Tree::Simple->new(), 
+                tree_file_path => "t/test.tree",
+                tree_index => "Index::Fail",
+            },
+        );
+    } "Tree::Simple::Manager::IncorrectObjectType", '... this should die'; 
+    
+    throws_ok {
+        Tree::Simple::Manager->new(
+            'Fail' => { 
+                tree_root => Tree::Simple->new(), 
+                tree_file_path => "t/test.tree",
+                tree_view => "View::Fail",
+            },
+        );
+    } "Tree::Simple::Manager::IncorrectObjectType", '... this should die';    
+    
+    throws_ok {
+        Tree::Simple::Manager->new(
+            'Fail' => { 
+                tree_root => Tree::Simple->new(), 
+                tree_file_path => "t/test.tree",
+                tree_parse_filter => sub { return bless({}, 'Fail') }
+            },
+        );
+    } "Tree::Simple::Manager::OperationFailed", '... this should die';  
+    isa_ok($@->getSubException(), 'Tree::Simple::Manager::IncorrectObjectType');  
+    
+    throws_ok {
+        Tree::Simple::Manager->new(
+            'Fail' => { 
+                tree_root => Tree::Simple->new(), 
+                tree_file_path => "t/test.tree",
+                tree_parse_filter => [],
+            },
+        );
+    } "Tree::Simple::Manager::OperationFailed", '... this should die';                            
+    isa_ok($@->getSubException(), 'Tree::Simple::Manager::IncorrectObjectType');
     
     throws_ok {
         Tree::Simple::Manager->new(

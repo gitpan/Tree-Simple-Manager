@@ -65,12 +65,12 @@ isa_ok($tree, 'Tree::Simple');
     can_ok($index, 'getTreeByID');
     
     is_deeply(
-        [ $index->getIndexKeys() ], 
+        [ sort { $a <=> $b } $index->getIndexKeys() ], 
         [ 1 .. 14 ], 
         '... all our keys should be there');
 
     is_deeply(
-        scalar $index->getIndexKeys(), 
+        [ sort { $a <=> $b } @{scalar($index->getIndexKeys())} ], 
         [ 1 .. 14 ], 
         '... all our keys should be there');
 
