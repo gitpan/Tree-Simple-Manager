@@ -1,4 +1,4 @@
-Tree::Simple::Manager version 0.02
+Tree::Simple::Manager version 0.03
 ===========================
 
 See the individual module documentation for more information
@@ -20,6 +20,7 @@ This module requires these other modules and libraries:
     Tree::Parser 0.09
     Tree::Simple::View 0.11
     Class::Throwable 0.10
+    Storable
 
 COPYRIGHT AND LICENCE
 
