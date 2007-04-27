@@ -1,6 +1,6 @@
 ---
 name: Tree-Simple-Manager
-version: 0.03
+version: 0.04
 author:
   - 'stevan little, E<lt>stevan@iinteractive.comE<gt>'
 abstract: A class for managing multiple Tree::Simple hierarchies
@@ -19,13 +19,16 @@ build_requires:
 provides:
   Tree::Simple::Manager:
     file: lib/Tree/Simple/Manager.pm
-    version: 0.03
+    version: 0.04
   Tree::Simple::Manager::Exceptions:
     file: lib/Tree/Simple/Manager/Exceptions.pm
     version: 0.02
   Tree::Simple::Manager::Index:
     file: lib/Tree/Simple/Manager/Index.pm
-    version: 0.02
+    version: 0.03
+  Tree::Simple::WithMetaData:
+    file: lib/Tree/Simple/WithMetaData.pm
+    version: 0.01
 generated_by: Module::Build version 0.2805
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.2.html
