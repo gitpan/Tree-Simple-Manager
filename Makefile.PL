@@ -8,7 +8,7 @@ WriteMakefile
           'EXE_FILES' => [],
           'VERSION_FROM' => 'lib/Tree/Simple/Manager.pm',
           'PREREQ_PM' => {
-                           'Tree::Parser' => '0.09',
+                           'Tree::Parser' => '0.15',
                            'Test::More' => '0.47',
                            'Class::Throwable' => '0.1',
                            'Test::Exception' => '0.21',
