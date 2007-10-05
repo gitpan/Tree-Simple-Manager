@@ -14,7 +14,8 @@ WriteMakefile
                            'Test::Exception' => '0.21',
                            'Storable' => 0,
                            'Tree::Simple::View' => '0.11',
-                           'Tree::Simple' => '1.14'
+                           'Tree::Simple' => '1.14',
+                           'File::stat' => 0
                          }
         )
 ;

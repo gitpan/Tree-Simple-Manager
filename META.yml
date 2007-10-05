@@ -1,6 +1,6 @@
 ---
 name: Tree-Simple-Manager
-version: 0.05
+version: 0.06
 author:
   - 'stevan little, E<lt>stevan@iinteractive.comE<gt>'
 abstract: A class for managing multiple Tree::Simple hierarchies
@@ -9,6 +9,7 @@ resources:
   license: http://dev.perl.org/licenses/
 requires:
   Class::Throwable: 0.1
+  File::stat: 0
   Storable: 0
   Tree::Parser: 0.15
   Tree::Simple: 1.14
@@ -19,7 +20,7 @@ build_requires:
 provides:
   Tree::Simple::Manager:
     file: lib/Tree/Simple/Manager.pm
-    version: 0.05
+    version: 0.06
   Tree::Simple::Manager::Exceptions:
     file: lib/Tree/Simple/Manager/Exceptions.pm
     version: 0.02
