@@ -2,20 +2,20 @@
 use ExtUtils::MakeMaker;
 WriteMakefile
 (
-          'PL_FILES' => {},
-          'INSTALLDIRS' => 'site',
           'NAME' => 'Tree::Simple::Manager',
-          'EXE_FILES' => [],
           'VERSION_FROM' => 'lib/Tree/Simple/Manager.pm',
           'PREREQ_PM' => {
-                           'Tree::Parser' => '0.15',
-                           'Test::More' => '0.47',
                            'Class::Throwable' => '0.1',
+                           'File::stat' => '0',
+                           'Storable' => '0',
                            'Test::Exception' => '0.21',
-                           'Storable' => 0,
-                           'Tree::Simple::View' => '0.11',
+                           'Test::More' => '0.47',
+                           'Tree::Parser' => '0.15',
                            'Tree::Simple' => '1.14',
-                           'File::stat' => 0
-                         }
+                           'Tree::Simple::View' => '0.11'
+                         },
+          'INSTALLDIRS' => 'site',
+          'EXE_FILES' => [],
+          'PL_FILES' => {}
         )
 ;
